@@ -13,6 +13,9 @@ from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, TOP, BOTH, Text, filedial
 import os
 import json
 from time import time
+import tempfile
+import sys
+
 
 COLOR_BACKGROUND = "#ffebb8"
 COLOR_TEXT = "#21130d"
@@ -270,6 +273,35 @@ class MainWindow(Tk):
             self.geometry(f"+{x}+{y}")
 
 
+def ensure_single_instance():
+    tmp_dir = tempfile.gettempdir()
+    lock_file = os.path.join(tmp_dir, f"{APP_TITLE.replace(' ', '')}.lock")
+
+    try:
+        with open(lock_file, 'r') as file:
+            old_pid = int(file.read())
+
+            # Check if this process is active
+            try:
+                os.kill(old_pid, 0)
+            except OSError:
+                # This PID is unassigned. Write the new one.
+                with open(lock_file, 'w') as file:
+                    file.write(f"{os.getpid()}")
+            else:
+                sys.exit("ERROR: App is already running. Exiting.")
+
+    except Exception as e:
+        print(e)
+        # No file found. Write the new PID.
+        try:
+            with open(lock_file, 'w') as file:
+                file.write(f"{os.getpid()}")
+        except Exception as e:
+            print(f"ERROR: Could not lock app. {e}")
+
+
 if __name__ == '__main__':
+    ensure_single_instance()
     main_app = MainWindow()
     main_app.mainloop()
