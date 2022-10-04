@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Simple note-taking app easy to back up via cloud.
+The app itself is just a lightweight Python desktop app with a configurable folder to be used for notes.
+It is this folder that you can back up to save your notes.
+All the notes are just text files which the application reads and displays in a simple resizable window.
 
+You will need Python3 with TkInter installed.
+Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`. To change it just click on "browse" button.
+"""
 from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, TOP, BOTH, Text, filedialog
 import os
 import json
 from time import time
 
+COLOR_BACKGROUND = "#ffebb8"
+COLOR_TEXT = "#21130d"
+
 APP_TITLE = "Cloud Notes"
-COLOR_BACKGROUND = "#424344"
-COLOR_LABEL_BACKGROUND_LIGHT = "#424344"
-COLOR_LABEL_BACKGROUND_DARK = "#383939"
-COLOR_LABEL_TEXT = "#FFF0E7"
-COLOR_BTN_BACKGROUND = "#424344"
-COLOR_BTN_TEXT = "#f48642"
-COLOR_BTNPANEL_BACKGROUND = "#424344"
-COLOR_DAY_BACKGROUND = "#111111"
-COLOR_LABEL_TITLE_BACKGROUND = "#111111"
-COLOR_LABEL_HOVER = "#908D8D"
 MAX_FILE_SIZE = 1024
 
 cfg_name = "settings.cfg"
@@ -45,26 +46,30 @@ class MainWindow(Tk):
 
         self.note_text = ""
 
-        self.frame_btn = Frame(self, bg=COLOR_BTN_BACKGROUND)
+        self.frame_btn = Frame(self, bg=COLOR_BACKGROUND)
         self.frame_btn.pack(fill=X, side=TOP)
 
-        self.btn_prev = Button(self.frame_btn, text="<", bg=COLOR_BTN_BACKGROUND, fg=COLOR_BTN_TEXT,
+        self.btn_prev = Button(self.frame_btn, text="<", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
                                command=self.show_previous, width=3, height=1, pady=0, borderwidth=0)
         self.btn_prev.pack(side=LEFT)
 
-        self.btn_next = Button(self.frame_btn, text=">", bg=COLOR_BTN_BACKGROUND, fg=COLOR_BTN_TEXT,
+        self.btn_next = Button(self.frame_btn, text=">", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
                                command=self.show_next, width=3, height=1, pady=0, borderwidth=0)
         self.btn_next.pack(side=LEFT)
 
-        self.btn_new = Button(self.frame_btn, text="New", bg=COLOR_BTN_BACKGROUND, fg=COLOR_BTN_TEXT,
-                              command=self.new_note, width=3, height=1, pady=0, borderwidth=0)
+        self.btn_new = Button(self.frame_btn, text="New", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
+                              command=self.new_note, width=5, height=1, pady=0, borderwidth=0)
         self.btn_new.pack(side=LEFT)
 
-        self.btn_setup = Button(self.frame_btn, text="browse", bg=COLOR_BTN_BACKGROUND, fg=COLOR_BTN_TEXT,
+        self.btn_delete = Button(self.frame_btn, text="Delete", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
+                                 command=self.delete_note, width=5, height=1, pady=0, borderwidth=0)
+        self.btn_delete.pack(side=LEFT)
+
+        self.btn_setup = Button(self.frame_btn, text="Browse", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
                                 command=self.select_notes_dir, width=5, height=1, pady=0, borderwidth=0)
         self.btn_setup.pack(side=RIGHT)
 
-        self.display_text = Text(self, bg=COLOR_BTN_BACKGROUND, fg=COLOR_BTN_TEXT, borderwidth=0)
+        self.display_text = Text(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5, pady=5)
         self.display_text.pack(padx=0, pady=0, fill=BOTH, expand=True)
 
         self.read_note(self.note_file_name)
@@ -75,6 +80,38 @@ class MainWindow(Tk):
         self.note_text = ""
         self.note_file_name = f"Note_{int(time())}"
         self.display_text.delete(1.0, "end")
+
+    def delete_note(self):
+        self.display_text.delete(1.0, "end")
+        self.note_text = ""
+
+        full_path = os.path.join(self.notes_dir, self.note_file_name)
+        notes = self.list_notes()
+
+        note_index = len(notes) - 1
+        if len(notes) > 0:
+            try:
+                note_index = notes.index(self.note_file_name)
+            except ValueError:
+                note_index = len(notes) - 1
+
+        try:
+            if os.path.exists(full_path):
+                os.remove(full_path)
+        except Exception as e:
+            print(f"ERROR: Could not remove file {full_path}. {e}")
+
+        notes = self.list_notes()
+
+        if note_index < len(notes):
+            self.note_file_name = notes[note_index]
+        elif len(notes) == 0:
+            self.note_file_name = f"Note_{int(time())}"
+        else:
+            note_index = len(notes) - 1
+            self.note_file_name = notes[note_index]
+
+        self.read_note(self.note_file_name)
 
     def list_notes(self):
         notes = []
