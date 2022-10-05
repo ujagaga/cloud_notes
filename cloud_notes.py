@@ -14,7 +14,7 @@ import os
 import json
 from time import time
 import tempfile
-import sys
+from signal import SIGINT
 
 
 COLOR_BACKGROUND = "#ffebb8"
@@ -277,31 +277,35 @@ def ensure_single_instance():
     tmp_dir = tempfile.gettempdir()
     lock_file = os.path.join(tmp_dir, f"{APP_TITLE.replace(' ', '')}.lock")
 
-    try:
-        with open(lock_file, 'r') as file:
-            old_pid = int(file.read())
-
-            # Check if this process is active
-            try:
-                os.kill(old_pid, 0)
-            except OSError:
-                # This PID is unassigned. Write the new one.
-                with open(lock_file, 'w') as file:
-                    file.write(f"{os.getpid()}")
-            else:
-                sys.exit("ERROR: App is already running. Exiting.")
-
-    except Exception as e:
-        print(e)
-        # No file found. Write the new PID.
+    # Check if lock file exists and contains app PID
+    old_pid = 0
+    if os.path.isfile(lock_file):
         try:
-            with open(lock_file, 'w') as file:
-                file.write(f"{os.getpid()}")
-        except Exception as e:
-            print(f"ERROR: Could not lock app. {e}")
+            with open(lock_file, 'r') as file:
+                old_pid = int(file.read())
+        except:
+            pass
+
+    if old_pid != 0:
+        # Check if app is running
+        try:
+            os.kill(old_pid, 0)
+            print("ERROR: App is already running. Sending the kill signal.")
+            os.kill(old_pid, SIGINT)
+        except OSError:
+            pass
+
+    # Write a new PID.
+    with open(lock_file, 'w') as file:
+        file.write(f"{os.getpid()}")
 
 
 if __name__ == '__main__':
     ensure_single_instance()
     main_app = MainWindow()
-    main_app.mainloop()
+    try:
+        main_app.mainloop()
+    except KeyboardInterrupt:
+        print("INFO: Received a keyboard interrupt event. Exiting.")
+        main_app.save_cfg()
+        main_app.save_note()
