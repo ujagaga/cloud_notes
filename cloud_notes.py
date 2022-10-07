@@ -72,17 +72,31 @@ class MainWindow(Tk):
                                 command=self.select_notes_dir, width=5, height=1, pady=0, borderwidth=0)
         self.btn_setup.pack(side=RIGHT)
 
-        self.display_text = Text(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5, pady=5)
+        self.display_text = Text(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5, pady=5,
+                                 undo=True, autoseparators=True, maxundo=1, spacing1=5, spacing2=0, spacing3=5)
         self.display_text.pack(padx=0, pady=0, fill=BOTH, expand=True)
+        self.display_text.bind("<<Paste>>", self.custom_paste)
 
         self.read_note(self.note_file_name)
 
         self.focus_force()
 
+    def set_title(self, note_id):
+        self.title(f"{APP_TITLE} - {note_id}")
+
+    def custom_paste(self, event):
+        try:
+            event.widget.delete("sel.first", "sel.last")
+        except:
+            pass
+        event.widget.insert("insert", event.widget.clipboard_get())
+        return "break"
+        
     def new_note(self):
         self.note_text = ""
         self.note_file_name = f"Note_{int(time())}"
         self.display_text.delete(1.0, "end")
+        self.set_title("New")
 
     def delete_note(self):
         self.display_text.delete(1.0, "end")
@@ -134,27 +148,30 @@ class MainWindow(Tk):
 
     def read_note(self, file_name):
         self.display_text.delete(1.0, "end")
+        notes = self.list_notes()
 
         if file_name is None:
             # No Note set. Set first one if exists
-            notes = self.list_notes()
             if len(notes) > 0:
                 self.note_file_name = notes[0]
-
-        if file_name is None:
-            # No notes available
-            self.note_file_name = f"Note_{int(time())}"
-        else:
-            try:
-                with open(os.path.join(self.notes_dir, file_name), 'r') as note:
-                    self.note_text = note.read()
-                    self.display_text.insert(1.0, self.note_text)
-                    self.note_file_name = file_name
-            except FileNotFoundError:
-                # This note no longer exists. Remove from config.
-                self.note_file_name = None
-                self.save_cfg()
+            else:
+                # No notes available
                 self.note_file_name = f"Note_{int(time())}"
+
+        try:
+            with open(os.path.join(self.notes_dir, file_name), 'r') as note:
+                self.note_text = note.read()
+                self.display_text.insert(1.0, self.note_text)
+                self.note_file_name = file_name
+                note_index = notes.index(file_name)
+        except FileNotFoundError:
+            # This note no longer exists. Remove from config.
+            self.note_file_name = None
+            self.save_cfg()
+            self.note_file_name = f"Note_{int(time())}"
+            note_index = "New"
+
+        self.set_title(note_index)
 
     def save_note(self):
         text = self.display_text.get("1.0", "end")
