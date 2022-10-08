@@ -12,7 +12,7 @@ Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`. To 
 from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, TOP, BOTH, Text, filedialog
 import os
 import json
-from time import time
+from time import time, sleep
 import tempfile
 from signal import SIGINT
 
@@ -42,11 +42,12 @@ class MainWindow(Tk):
 
         self.x = 200
         self.y = 200
+
         self.notes_dir = default_notes_dir
         self.note_file_name = None
 
         self.read_cfg()
-
+        self.position_set = False
         self.note_text = ""
 
         self.frame_btn = Frame(self, bg=COLOR_BACKGROUND)
@@ -79,7 +80,24 @@ class MainWindow(Tk):
 
         self.read_note(self.note_file_name)
 
+        self.bind("<FocusIn>", self.handle_focus)
         self.focus_force()
+
+    def handle_focus(self, event):
+        if not self.position_set:
+            self.position_set = True
+            self.trim_offset()
+
+    def trim_offset(self):
+        sleep(0.01)
+        offset_x = self.winfo_x() - self.x
+        offset_y = self.winfo_y() - self.y
+
+        # Correct X and Y
+        self.x -= offset_x
+        self.y -= offset_y
+        self.geometry(f"+{self.x}+{self.y}")
+        print("OFFSET:", offset_x, offset_y)
 
     def set_title(self, note_id):
         self.title(f"{APP_TITLE} - {note_id}")
@@ -254,6 +272,8 @@ class MainWindow(Tk):
                 "notes_dir": self.notes_dir,
                 "x": self.winfo_x(),
                 "y": self.winfo_y(),
+                "width": self.winfo_width(),
+                "height": self.winfo_height(),
                 "current_note": self.note_file_name
             }
             config.write(json.dumps(data))
@@ -268,6 +288,8 @@ class MainWindow(Tk):
                     "notes_dir": self.notes_dir,
                     "x": self.winfo_x(),
                     "y": self.winfo_y(),
+                    "width": self.winfo_width(),
+                    "height": self.winfo_height(),
                     "current_note": self.note_file_name
                 }
                 config.write(json.dumps(data))
@@ -275,19 +297,21 @@ class MainWindow(Tk):
         with open(cfg_path, 'r') as config:
             data = json.loads(config.read())
             self.notes_dir = data.get("notes_dir", self.notes_dir)
-            x = data.get("x", self.x)
-            y = data.get("y", self.y)
+            self.x = data.get("x", self.x)
+            self.y = data.get("y", self.y)
+            width = data.get("width", self.winfo_width())
+            height = data.get("height", self.winfo_height())
             self.note_file_name = data.get("current_note", None)
 
             max_x = self.winfo_screenwidth() - 300
             max_y = self.winfo_screenheight() - 300
 
-            if x > max_x:
-                x = max_x
-            if y > max_y:
-                y = max_y
-
-            self.geometry(f"+{x}+{y}")
+            if self.x > max_x:
+                self.x = max_x
+            if self.y > max_y:
+                self.y = max_y
+            # Set window position
+            self.geometry(f"{width}x{height}+{self.x}+{self.y}")
 
 
 def ensure_single_instance():
@@ -320,6 +344,7 @@ def ensure_single_instance():
 if __name__ == '__main__':
     ensure_single_instance()
     main_app = MainWindow()
+
     try:
         main_app.mainloop()
     except KeyboardInterrupt:
