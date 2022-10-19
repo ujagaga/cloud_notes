@@ -9,14 +9,13 @@ All the notes are just text files which the application reads and displays in a 
 You will need Python3 with TkInter installed.
 Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`. To change it just click on "browse" button.
 """
-from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTTOM, BOTH, Text, filedialog, YES, NO, \
-    Scrollbar, Listbox, END, NW, PhotoImage
+from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTH, Text, filedialog, YES, NO, \
+    Scrollbar, Listbox, END, NW, PhotoImage, simpledialog, messagebox
 import os
 import json
 from time import time
 import tempfile
 from signal import SIGINT
-import base64
 
 
 COLOR_BACKGROUND = "#ffebb8"
@@ -185,6 +184,7 @@ class MainWindow(Tk):
         self.note_listbox = Listbox(self.frame_note_list, bg=COLOR_BACKGROUND, fg=COLOR_TEXT)
         self.note_listbox.pack(side=LEFT, fill=Y)
         self.note_listbox.bind("<<ListboxSelect>>", self.file_selected)
+        self.note_listbox.bind("<Double-1>", self.edit_name)
 
         self.note_listbox.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.note_listbox.yview)
@@ -234,6 +234,28 @@ class MainWindow(Tk):
         else:
             self.frame_note_list.pack_forget()
             self.btn_show_list.config(text="<")
+
+    def edit_name(self, event):
+        if self.note_file_name is not None:
+            file_path = os.path.join(self.notes_dir, self.note_file_name)
+            new_name = simpledialog.askstring(
+                title="Change Note Name",
+                prompt="New note name:",
+                initialvalue=self.note_file_name
+            )
+            if new_name is not None:
+                print("Changing to:", new_name)
+                new_file_path = os.path.join(self.notes_dir, new_name)
+                if os.path.isfile(new_file_path):
+                    messagebox.showerror(
+                        "Error Renaming",
+                        f'Could not rename "{self.note_file_name}" to "{new_name}" '
+                        f'because a file with same name already exists!'
+                    )
+                else:
+                    os.rename(file_path, new_file_path)
+                    self.note_file_name = new_name
+                    self.refresh_note_list()
 
     def refresh_note_list(self):
         self.list_notes()
