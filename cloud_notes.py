@@ -169,7 +169,7 @@ class MainWindow(Tk):
         self.frame_browser.pack(fill=BOTH, side=LEFT, expand=NO)
 
         self.frame_note_editor = Frame(self, bg=COLOR_BACKGROUND)
-        self.frame_note_editor.pack(fill=X, side=RIGHT, expand=YES)
+        self.frame_note_editor.pack(fill=BOTH, side=RIGHT, expand=YES)
 
         self.frame_note_list = Frame(self.frame_browser, bg=COLOR_BACKGROUND, width=200)
         self.frame_note_list.pack(fill=BOTH, side=LEFT)
@@ -227,6 +227,13 @@ class MainWindow(Tk):
         self.read_note()
 
         self.focus_force()
+
+        if self.show_note_list_flag:
+            self.frame_note_list.pack(side=RIGHT, fill=Y)
+            self.btn_show_list.config(text=">")
+        else:
+            self.frame_note_list.pack_forget()
+            self.btn_show_list.config(text="<")
 
     def refresh_note_list(self):
         self.list_notes()
@@ -472,7 +479,8 @@ class MainWindow(Tk):
                 "height": self.winfo_height(),
                 "offset_x": self.offset_x,
                 "offset_y": self.offset_y,
-                "current_note": self.note_file_name
+                "current_note": self.note_file_name,
+                "show_note_list": self.show_note_list_flag
             }
             config.write(json.dumps(data))
 
@@ -490,6 +498,7 @@ class MainWindow(Tk):
             self.x = data.get("x", self.x) - self.offset_x
             self.y = data.get("y", self.y) - self.offset_y
             self.note_file_name = data.get("current_note", None)
+            self.show_note_list_flag = data.get("show_note_list",  self.show_note_list_flag)
 
             max_x = self.winfo_screenwidth() - 300
             max_y = self.winfo_screenheight() - 300
