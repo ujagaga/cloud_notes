@@ -23,7 +23,6 @@ COLOR_TEXT = "#21130d"
 
 APP_TITLE = "Cloud Notes"
 MAX_FILE_SIZE = 1024        # If the file is bigger than 1Mb, it will not be opened to prevent app from freezing
-FILE_LIST_WIDTH = 100
 
 cfg_name = "settings.cfg"
 user_dir = os.path.expanduser("~")
@@ -157,6 +156,7 @@ class MainWindow(Tk):
         self.notes = []
         self.note_listbox = None
         self.scrollbar = None
+        self.file_list_width = 257
 
         self.notes_dir = default_notes_dir
         self.note_file_name = None
@@ -170,7 +170,7 @@ class MainWindow(Tk):
         self.frame_note_editor = Frame(self, bg=COLOR_BACKGROUND)
         self.frame_note_editor.pack(fill=BOTH, side=RIGHT, expand=YES)
 
-        self.frame_note_list = Frame(self.frame_browser, bg=COLOR_BACKGROUND, width=200)
+        self.frame_note_list = Frame(self.frame_browser, bg=COLOR_BACKGROUND)
         self.frame_note_list.pack(fill=BOTH, side=LEFT)
 
         self.browse_image = PhotoImage(data=IMG_BTN_BROWSE)
@@ -181,7 +181,7 @@ class MainWindow(Tk):
         self.scrollbar = Scrollbar(self.frame_note_list)
         self.scrollbar.pack(side=RIGHT, fill=Y)
 
-        self.note_listbox = Listbox(self.frame_note_list, bg=COLOR_BACKGROUND, fg=COLOR_TEXT)
+        self.note_listbox = Listbox(self.frame_note_list, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, width=30)
         self.note_listbox.pack(side=LEFT, fill=Y)
         self.note_listbox.bind("<<ListboxSelect>>", self.file_selected)
         self.note_listbox.bind("<Double-1>", self.edit_name)
@@ -191,7 +191,7 @@ class MainWindow(Tk):
 
         self.btn_show_list = Button(self.frame_browser, text=">", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
                                     width=1, padx=0, borderwidth=0)
-        self.btn_show_list.pack(side=RIGHT, fill=Y)
+        self.btn_show_list.pack(side=LEFT, fill=Y)
         self.btn_show_list.bind('<Button-1>', self.show_hide_note_list)
         self.btn_show_list.bind('<ButtonRelease-1>', self.fix_offset)
 
@@ -218,8 +218,8 @@ class MainWindow(Tk):
                                  command=self.delete_note, width=26, height=26, pady=0, borderwidth=0)
         self.btn_delete.pack(side=LEFT)
 
-        self.display_text = Text(self.frame_note_editor, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5, pady=5,
-                                 undo=True, autoseparators=True, maxundo=1, spacing1=5, spacing2=0, spacing3=5)
+        self.display_text = Text(self.frame_note_editor, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5,
+                                 pady=3, undo=True, autoseparators=True, maxundo=1, spacing1=3, spacing2=0, spacing3=3)
         self.display_text.pack(padx=0, pady=0, fill=BOTH, expand=True)
         self.display_text.bind("<<Paste>>", self.custom_paste)
 
@@ -230,10 +230,10 @@ class MainWindow(Tk):
 
         if self.show_note_list_flag:
             self.frame_note_list.pack(side=RIGHT, fill=Y)
-            self.btn_show_list.config(text=">")
+            self.btn_show_list.config(text="->")
         else:
             self.frame_note_list.pack_forget()
-            self.btn_show_list.config(text="<")
+            self.btn_show_list.config(text="<-")
 
     def edit_name(self, event):
         if self.note_file_name is not None:
@@ -289,14 +289,15 @@ class MainWindow(Tk):
 
         if self.show_note_list_flag:
             self.show_note_list_flag = False
-            list_width = -self.frame_note_list.winfo_width()
+            self.file_list_width = self.frame_note_list.winfo_width()
+            list_width = -self.file_list_width
             self.frame_note_list.pack_forget()
-            self.btn_show_list.config(text="<")
+            self.btn_show_list.config(text="<-")
         else:
             self.show_note_list_flag = True
             self.frame_note_list.pack(side=RIGHT, fill=Y)
-            self.btn_show_list.config(text=">")
-            list_width = self.frame_note_list.winfo_width()
+            self.btn_show_list.config(text="->")
+            list_width = self.file_list_width
 
         self.width += list_width
         self.x -= list_width
@@ -502,7 +503,8 @@ class MainWindow(Tk):
                 "offset_x": self.offset_x,
                 "offset_y": self.offset_y,
                 "current_note": self.note_file_name,
-                "show_note_list": self.show_note_list_flag
+                "show_note_list": self.show_note_list_flag,
+                "file_list_width": self.file_list_width
             }
             config.write(json.dumps(data))
 
@@ -521,6 +523,7 @@ class MainWindow(Tk):
             self.y = data.get("y", self.y) - self.offset_y
             self.note_file_name = data.get("current_note", None)
             self.show_note_list_flag = data.get("show_note_list",  self.show_note_list_flag)
+            self.file_list_width = data.get("file_list_width",  self.file_list_width)
 
             max_x = self.winfo_screenwidth() - 300
             max_y = self.winfo_screenheight() - 300
