@@ -32,6 +32,35 @@ cfg_dir = os.path.join(user_dir, ".cloud_notes")
 cfg_path = os.path.join(cfg_dir, cfg_name)
 default_notes_dir = os.path.join(cfg_dir, "notes")
 
+IMG_ICON = (
+    "iVBORw0KGgoAAAANSUhEUgAAAFAAAABiCAYAAADHo1QLAAAACXBIWXMAAAsTAA"
+    "ALEwEAmpwYAAAEQUlEQVR4nO2dv0sjaRjHv5E9hQh7xcKlGLQQ1kJdBBFROGII"
+    "A84eOMQiVtNek8YqjTYiuP/BtmuhVwiyBOF0CrdJdUskRXYK2ROLYXNViN6qzW"
+    "wxV0Qjh8n8yJPJm5k8H3iKMY+Th4/PM/PyDjgxOGBZln1xcQHLspzSesrLlz/j"
+    "+/d/AQDz8/MxweW05uzszFYUxQbQt5HJZOzz83M7QA3+sSzL1jRNuBw/kc/nbc"
+    "uyxIu0LMtOJpPChXQSmUxGvMBcLidcBCWESqxUKsIFdCM0Tev5OL8AgP39/V5+"
+    "Z2AcHBzg7u6up9/5uAxw/KvNzMz0oBRnDMPwnKsoCo6PjzE8PBz4MueFW4Jtbw"
+    "ddgydevfoH9XrdU66u61hfX4dlWXbQEof6Ygnggfv7e1/5hUKhKTGgkgAAQ0Ge"
+    "XDSFQgGyLAcqMdICAaBYLEJVVdze3gYiMfICgcY1MZvNBtKJkRD458mpa46u64"
+    "GMcyQE/vb2MyqVimtesViELMtdHedICASAN28+epaYzWa7JjEyAgHvEnVdx/Ly"
+    "clfGOVICgYbEr1//ds0rl8tYXFzEzc0NSWLkBALA69d/eOrEcrkMVVVJEiMpEP"
+    "B3TUyn0x1fEyMrEPA3zktLSx11YqQFAt7H2TAMqKqKWq3mS2LkBQLeO7FYLCKV"
+    "Svka54EQCDQ60TRN1zzDMDA7O+t5nAdGIACMjX3w1IlXV1dIp9OexnmgBAKNTv"
+    "R6Y0mlUq6dOHACAX/jPD097diJAykQeBrnkZERx7xqtYpUKtVW4sAKBBqd+OWL"
+    "+8MqwzDaShxogYC/cZ6cnHwmMTQCR0dH23726dOvpHOPjX2AaZqYmJhwzKvX68"
+    "/Wia6PNfuFhYUF6Lre8jNZlpFMJknnj8f/Qjwed80zDAM7OzvN49jDs9O2v9Av"
+    "z4XfvfsJW1tbostoYpomxsfHY6EZ4c3NH6JL+B8nJycAQnQNBIDd3V3RJTR5vJ"
+    "yESuDm5g8oiiK6DABAqVQCEDKBAHB6uohcLie6jCahEwgA79//AtvehqZpoksJ"
+    "z11YFLHYdsufS5KEarUanrtwv8ICibBAIiyQCAskwgKJsEAiHW9ntVsfhRHKWp"
+    "c7kAgLJMICibBAIiyQSMd3YUmSullHaOlY4Ldvv3ezjtDCI0yEBRJhgURYIBEW"
+    "SIQFEmGBRHg7C7ydJRQWSIQFEmGBRFggEd7OIsLbWUR4hImwQCIskAgLJMICib"
+    "BAIiyQCG9ngbezhMICibBAIiyQCAskwttZRHg7iwiPMBEWSIQFEmGBRFggkaFe"
+    "vPUliiQSiacDSZKEv1AqbJHP523gYYQ3Nja8q2cAACsrK08HD//SjcNjzM3N2c"
+    "+M7u3tCS8sLFEqlZ4LBICHueZwiMPDw9byHuFObB2SJLXsvJZLmFqtZh8dHUHX"
+    "dVxeXuL6+tpRelRJJBKYmprC6uoq1tbWevKiv4HjP6aW8zD7CfEHAAAAAElFTk"
+    "SuQmCC"
+)
+
 IMG_BTN_DELETE = (
     "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7EAA"
     "AOxAGVKw4bAAACZklEQVRIie2VP2gaURzHf6d3nqeFBKtQqdLFeEVMLQ1C8M/g"
@@ -117,6 +146,8 @@ class MainWindow(Tk):
         self.title(APP_TITLE)
         self.minsize(300, 300)
         self.configure(background=COLOR_BACKGROUND)
+        self.icon_image = PhotoImage(data=IMG_ICON)
+        self.iconphoto(False, self.icon_image)
 
         self.x = 200
         self.y = 200
@@ -374,12 +405,8 @@ class MainWindow(Tk):
                 note.write(text)
 
     def show_previous(self):
+        self.save_note()
         self.list_notes()
-
-        note_index = -1
-        if self.note_file_name not in self.notes:
-            # This is a new note. Should be saved first
-            self.save_note()
 
         self.list_notes()
 
@@ -398,13 +425,7 @@ class MainWindow(Tk):
         self.read_note()
 
     def show_next(self):
-        self.list_notes()
-
-        note_index = -1
-        if self.note_file_name not in self.notes:
-            # This is a new note. Should be saved first
-            self.save_note()
-
+        self.save_note()
         self.list_notes()
 
         if len(self.notes) > 0:
