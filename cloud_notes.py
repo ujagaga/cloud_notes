@@ -9,8 +9,8 @@ All the notes are just text files which the application reads and displays in a 
 You will need Python3 with TkInter installed.
 Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`. To change it just click on "browse" button.
 """
-from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTH, Text, filedialog, YES, NO, \
-    Scrollbar, Listbox, END, NW, PhotoImage, simpledialog, messagebox
+from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTH, BOTTOM, Text, filedialog, YES, \
+    Scrollbar, Listbox, END, PhotoImage, simpledialog, messagebox, Label, StringVar
 import os
 import json
 from time import time
@@ -174,11 +174,15 @@ IMG_BTN_HIDE = (
 
 class AutoScrollbar(Scrollbar):
     # a scrollbar that hides itself if it's not needed.
+    visible = False
+
     def set(self, lo, hi):
         if float(lo) <= 0.0 and float(hi) >= 1.0:
             self.pack_forget()
+            self.visible = False
         else:
             self.pack(side=LEFT, fill=Y)
+            self.visible = True
         Scrollbar.set(self, lo, hi)
 
 
@@ -205,8 +209,7 @@ class MainWindow(Tk):
         self.offset_y = 29
         self.notes = []
         self.note_listbox = None
-        self.scrollbar = None
-        self.file_list_width = 257
+        self.file_list_width = 177
 
         self.notes_dir = default_notes_dir
         self.note_file_name = None
@@ -221,15 +224,16 @@ class MainWindow(Tk):
         self.frame_btn.pack(fill=X, side=TOP)
 
         self.scrollbar = AutoScrollbar(self)
+        if self.scrollbar.visible:
+            self.scrollbar.pack(side=LEFT, fill=Y)
 
-        self.note_listbox = Listbox(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT)
+        self.note_listbox = Listbox(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, bd=0)
         self.note_listbox.pack(side=LEFT, fill=Y)
         self.note_listbox.bind("<<ListboxSelect>>", self.file_selected)
         self.note_listbox.bind("<Double-1>", self.edit_name)
 
         self.note_listbox.config(yscrollcommand=self.scrollbar.set)
 
-        self.scrollbar.pack(side=LEFT, fill=Y)
         self.scrollbar.config(command=self.note_listbox.yview)
 
         self.prev_btn_image = PhotoImage(data=IMG_BTN_PREV)
@@ -270,6 +274,11 @@ class MainWindow(Tk):
         self.display_text.pack(padx=0, pady=0, fill=BOTH, expand=True)
         self.display_text.bind("<<Paste>>", self.custom_paste)
 
+        self.status_text = StringVar()
+        self.status_text.set("")
+        self.status_bar = Label(self.frame_note_editor, textvariable=self.status_text, bg=COLOR_BACKGROUND, fg=COLOR_TEXT)
+        self.status_bar.pack(fill=X, side=BOTTOM)
+
         self.read_cfg()
         self.read_note()
 
@@ -280,6 +289,13 @@ class MainWindow(Tk):
             self.note_listbox.pack_forget()
             self.scrollbar.pack_forget()
             self.btn_show_list.config(image=self.show_list_image)
+
+    def clear_status(self):
+        self.status_text.set("")
+
+    def set_status(self, message):
+        self.status_text.set(message)
+        self.after(1500, self.clear_status)
 
     def edit_name(self, event):
         """
@@ -348,7 +364,8 @@ class MainWindow(Tk):
         else:
             self.show_note_list_flag = True
             self.note_listbox.pack(side=LEFT, fill=Y)
-            self.scrollbar.pack(side=LEFT, fill=Y)
+            if self.scrollbar.visible:
+                self.scrollbar.pack(side=LEFT, fill=Y)
             self.btn_show_list.config(image=self.hide_list_image)
             list_width = self.file_list_width
 
@@ -410,6 +427,7 @@ class MainWindow(Tk):
         try:
             if os.path.exists(full_path):
                 send2trash(full_path)
+                self.set_status(f"{self.note_file_name} moved to trash.")
         except Exception as e:
             print(f"ERROR: Could not remove file {full_path}. {e}")
 
@@ -557,7 +575,8 @@ class MainWindow(Tk):
                 "offset_y": self.offset_y,
                 "current_note": self.note_file_name,
                 "show_note_list": self.show_note_list_flag,
-                "file_list_width": self.file_list_width
+                "file_list_width": self.file_list_width,
+                "scrollbar_visible": self.scrollbar.visible
             }
             config.write(json.dumps(data))
 
@@ -577,6 +596,7 @@ class MainWindow(Tk):
             self.note_file_name = data.get("current_note", None)
             self.show_note_list_flag = data.get("show_note_list",  self.show_note_list_flag)
             self.file_list_width = data.get("file_list_width",  self.file_list_width)
+            self.scrollbar.visible = data.get("scrollbar_visible",  True)
 
             max_x = self.winfo_screenwidth() - 300
             max_y = self.winfo_screenheight() - 300
