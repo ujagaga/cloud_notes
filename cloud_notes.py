@@ -17,19 +17,31 @@ from time import time
 import tempfile
 from signal import SIGINT
 
+# Check requirements
+if 'posix' in os.name:
+    interpreter = "python3"
+else:
+    interpreter = "python"
 
+try:
+    from send2trash import send2trash
+except ModuleNotFoundError as e:
+    print(f"ERROR: {e}. Trying to install...")
+    os.system(f"{interpreter} -m pip install send2trash")
+    from send2trash import send2trash
+
+# Default variables
 COLOR_BACKGROUND = "#ffebb8"
 COLOR_TEXT = "#21130d"
-
 APP_TITLE = "Cloud Notes"
 MAX_FILE_SIZE = 1024        # If the file is bigger than 1Mb, it will not be opened to prevent app from freezing
-
 cfg_name = "settings.cfg"
 user_dir = os.path.expanduser("~")
 cfg_dir = os.path.join(user_dir, ".cloud_notes")
 cfg_path = os.path.join(cfg_dir, cfg_name)
 default_notes_dir = os.path.join(cfg_dir, "notes")
 
+# Base64 encoded button images
 IMG_ICON = (
     "iVBORw0KGgoAAAANSUhEUgAAAFAAAABiCAYAAADHo1QLAAAACXBIWXMAAAsTAA"
     "ALEwEAmpwYAAAEQUlEQVR4nO2dv0sjaRjHv5E9hQh7xcKlGLQQ1kJdBBFROGII"
@@ -131,6 +143,44 @@ IMG_BTN_PREV = (
     "4AVvkvhqyzT/AdrnmE4cwsQgAAAAAElFTkSuQmCC"
 )
 
+IMG_BTN_SHOW = (
+    "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAA"
+    "ALEwEAmpwYAAABXklEQVRIie2VPU7DQBCFPwdEZYSUEm6ABBKVfYe0SKm4gV2l"
+    "TSQwNQ03SJUjkJRU9CAhI1KRBHIIJCg8VsZje50AEk2eNMXOvJ3dnZ8d2OK/4a"
+    "3JOQWOgUPRvQPPwCPw9dPDfWAATMVJlUyF42/qvAssHY6tLGVPCTtm3QIS4Nbc"
+    "agbcARPgAXgDDkTy154Du8A9jrBdm5uNgYAsD23gQqQtukA4ek9S57yrSJ9AxK"
+    "oIzoCFss9Fh3Ai2ZPbS+HapxjzSNn2gBfKcU/FliOmmJNC4gcmLLp8OxXOc+ko"
+    "nkcxXH1t0KUYmNf1HAf0DDdUtlfAa8liqEhX5gUp9dA2D7hU6yGqmnzcOUgrbu"
+    "/KwQcVzWerKKZYRXNlt1UU01BFOar6IKS+D0I26ANYdbINxwwYATciI9FZXiI+"
+    "GvFnf5ELPlktN/2mfRy/6brz4IRsHhyJbkE2D574xTzYAoBv/O+qpMbmNHQAAA"
+    "AASUVORK5CYII="
+)
+
+IMG_BTN_HIDE = (
+    "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAA"
+    "ALEwEAmpwYAAAB2ElEQVRIia3Vv2tUQRAH8M87JTangpXEf0AEhVSxttI77YQD"
+    "IRYWVkkVTGVAYylK/oWroq2gnmBjlTIQQQIGC+PP3kZz+Cx2D/dt3l0u8AaGt7"
+    "szO9/3nZndLQQp0Inflyg1LNdj0BLrEahR6SYAJe41DdDCswxkoYnAaSpO4BWu"
+    "xPkQN/AGl3ABs9H2DR+w7Yj1OoUt/1n8xp4qs1R3sYr2UUDO4ueEoHX6A726YM"
+    "eyeQsruJatD/FCaOFNfMbpqCKDmziOdyak7VH2Z8NkvI27QvHPCPWbxyDbszYu"
+    "eC8LvBiZ7DuYki+Yi/uK6Jv+zIF0nRTyOHJYTGx3agBK7GAm8VtSrUml8KuJca"
+    "DavvkhTLWb+BWq6bqfGnYTw3zGbnkCwHLmezmxfUTRipN+4vQwY7BjvMwm4wIP"
+    "knlf0k1t42swE0HqGOzjavRLa/BdzeHLu2gpYTIndM7I/icZ/8Jjh3TRSPJzMB"
+    "DyWgi9vxD1PD6NYTX2HBBO8lrNpj1s4EnUjZiG3O9pjHGo9FRrMq1uCRfmVNIW"
+    "ejlt4brbtK962t8KVz+mexoLXBTeg3Nx7avwHryPQW+rtvpz3MLfadlMIyuq7D"
+    "pNBicwXU8AuqPFpkE6EeA1yn/yFds3BBMpEQAAAABJRU5ErkJggg=="
+)
+
+
+class AutoScrollbar(Scrollbar):
+    # a scrollbar that hides itself if it's not needed.
+    def set(self, lo, hi):
+        if float(lo) <= 0.0 and float(hi) >= 1.0:
+            self.pack_forget()
+        else:
+            self.pack(side=LEFT, fill=Y)
+        Scrollbar.set(self, lo, hi)
+
 
 class MainWindow(Tk):
     """
@@ -164,59 +214,56 @@ class MainWindow(Tk):
         self.show_note_list_flag = True
         self.note_text = ""
 
-        self.frame_browser = Frame(self, bg=COLOR_BACKGROUND)
-        self.frame_browser.pack(fill=BOTH, side=LEFT, expand=NO)
-
         self.frame_note_editor = Frame(self, bg=COLOR_BACKGROUND)
         self.frame_note_editor.pack(fill=BOTH, side=RIGHT, expand=YES)
 
-        self.frame_note_list = Frame(self.frame_browser, bg=COLOR_BACKGROUND)
-        self.frame_note_list.pack(fill=BOTH, side=LEFT)
+        self.frame_btn = Frame(self.frame_note_editor, bg=COLOR_BACKGROUND)
+        self.frame_btn.pack(fill=X, side=TOP)
 
-        self.browse_image = PhotoImage(data=IMG_BTN_BROWSE)
-        self.btn_browse = Button(self.frame_note_list, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.browse_image,
-                                 command=self.select_notes_dir, width=26, height=26, borderwidth=0)
-        self.btn_browse.pack(side=TOP, anchor=NW)
+        self.scrollbar = AutoScrollbar(self)
 
-        self.scrollbar = Scrollbar(self.frame_note_list)
-        self.scrollbar.pack(side=RIGHT, fill=Y)
-
-        self.note_listbox = Listbox(self.frame_note_list, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, width=30)
+        self.note_listbox = Listbox(self, bg=COLOR_BACKGROUND, fg=COLOR_TEXT)
         self.note_listbox.pack(side=LEFT, fill=Y)
         self.note_listbox.bind("<<ListboxSelect>>", self.file_selected)
         self.note_listbox.bind("<Double-1>", self.edit_name)
 
         self.note_listbox.config(yscrollcommand=self.scrollbar.set)
+
+        self.scrollbar.pack(side=LEFT, fill=Y)
         self.scrollbar.config(command=self.note_listbox.yview)
-
-        self.btn_show_list = Button(self.frame_browser, text=">", bg=COLOR_BACKGROUND, fg=COLOR_TEXT,
-                                    width=1, padx=0, borderwidth=0)
-        self.btn_show_list.pack(side=LEFT, fill=Y)
-        self.btn_show_list.bind('<Button-1>', self.show_hide_note_list)
-        self.btn_show_list.bind('<ButtonRelease-1>', self.fix_offset)
-
-        self.frame_btn = Frame(self.frame_note_editor, bg=COLOR_BACKGROUND)
-        self.frame_btn.pack(fill=X, side=TOP)
 
         self.prev_btn_image = PhotoImage(data=IMG_BTN_PREV)
         self.btn_prev = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.prev_btn_image,
                                command=self.show_previous, width=26, height=26, pady=0, borderwidth=0)
-        self.btn_prev.pack(side=LEFT)
+        self.btn_prev.pack(side=LEFT, padx=1)
 
         self.next_btn_image = PhotoImage(data=IMG_BTN_NEXT)
         self.btn_next = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.next_btn_image,
                                command=self.show_next, width=26, height=26, pady=0, borderwidth=0)
-        self.btn_next.pack(side=LEFT)
+        self.btn_next.pack(side=LEFT, padx=1)
+
+        self.show_list_image = PhotoImage(data=IMG_BTN_SHOW)
+        self.hide_list_image = PhotoImage(data=IMG_BTN_HIDE)
+        self.btn_show_list = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.show_list_image,
+                                    width=26, height=26, borderwidth=0)
+        self.btn_show_list.pack(side=LEFT, padx=1)
+        self.btn_show_list.bind('<Button-1>', self.show_hide_note_list)
+        self.btn_show_list.bind('<ButtonRelease-1>', self.fix_offset)
+
+        self.browse_image = PhotoImage(data=IMG_BTN_BROWSE)
+        self.btn_browse = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.browse_image,
+                                 command=self.select_notes_dir, width=26, height=26, borderwidth=0)
+        self.btn_browse.pack(side=LEFT, padx=1)
 
         self.new_note_image = PhotoImage(data=IMG_BTN_NEW)
         self.btn_new = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.new_note_image,
                               command=self.new_note, width=26, height=26, borderwidth=0)
-        self.btn_new.pack(side=LEFT)
+        self.btn_new.pack(side=LEFT, padx=1)
 
         self.del_image = PhotoImage(data=IMG_BTN_DELETE)
         self.btn_delete = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.del_image,
                                  command=self.delete_note, width=26, height=26, pady=0, borderwidth=0)
-        self.btn_delete.pack(side=LEFT)
+        self.btn_delete.pack(side=RIGHT, padx=20)
 
         self.display_text = Text(self.frame_note_editor, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, borderwidth=0, padx=5,
                                  pady=3, undo=True, autoseparators=True, maxundo=1, spacing1=3, spacing2=0, spacing3=3)
@@ -228,14 +275,18 @@ class MainWindow(Tk):
 
         self.focus_force()
 
-        if self.show_note_list_flag:
-            self.frame_note_list.pack(side=RIGHT, fill=Y)
-            self.btn_show_list.config(text="->")
-        else:
-            self.frame_note_list.pack_forget()
-            self.btn_show_list.config(text="<-")
+        # Check if note list window should be shown
+        if not self.show_note_list_flag:
+            self.note_listbox.pack_forget()
+            self.scrollbar.pack_forget()
+            self.btn_show_list.config(image=self.show_list_image)
 
     def edit_name(self, event):
+        """
+        Edit note file name
+        :param event: Unused dummy variable
+        :return:
+        """
         if self.note_file_name is not None:
             file_path = os.path.join(self.notes_dir, self.note_file_name)
             new_name = simpledialog.askstring(
@@ -289,14 +340,16 @@ class MainWindow(Tk):
 
         if self.show_note_list_flag:
             self.show_note_list_flag = False
-            self.file_list_width = self.frame_note_list.winfo_width()
+            self.file_list_width = self.note_listbox.winfo_width() + self.scrollbar.winfo_width()
             list_width = -self.file_list_width
-            self.frame_note_list.pack_forget()
-            self.btn_show_list.config(text="<-")
+            self.note_listbox.pack_forget()
+            self.scrollbar.pack_forget()
+            self.btn_show_list.config(image=self.show_list_image)
         else:
             self.show_note_list_flag = True
-            self.frame_note_list.pack(side=RIGHT, fill=Y)
-            self.btn_show_list.config(text="->")
+            self.note_listbox.pack(side=LEFT, fill=Y)
+            self.scrollbar.pack(side=LEFT, fill=Y)
+            self.btn_show_list.config(image=self.hide_list_image)
             list_width = self.file_list_width
 
         self.width += list_width
@@ -356,7 +409,7 @@ class MainWindow(Tk):
 
         try:
             if os.path.exists(full_path):
-                os.remove(full_path)
+                send2trash(full_path)
         except Exception as e:
             print(f"ERROR: Could not remove file {full_path}. {e}")
 
