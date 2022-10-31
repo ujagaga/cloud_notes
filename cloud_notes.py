@@ -13,7 +13,7 @@ from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTH, BOTTOM, Tex
     Scrollbar, Listbox, END, PhotoImage, simpledialog, messagebox, Label, StringVar
 import os
 import json
-from time import time
+from time import time, sleep
 import tempfile
 from signal import SIGINT
 
@@ -194,12 +194,15 @@ class MainWindow(Tk):
         Tk.__init__(self)
 
         self.protocol("WM_DELETE_WINDOW", self.dismiss)
+        self.bind("<FocusOut>", self.on_focus_out)
 
         self.title(APP_TITLE)
         self.minsize(300, 300)
         self.configure(background=COLOR_BACKGROUND)
         self.icon_image = PhotoImage(data=IMG_ICON)
         self.iconphoto(False, self.icon_image)
+
+        # self.focus_out_timestamp = 0
 
         self.x = 200
         self.y = 200
@@ -289,6 +292,9 @@ class MainWindow(Tk):
             self.note_listbox.pack_forget()
             self.scrollbar.pack_forget()
             self.btn_show_list.config(image=self.show_list_image)
+
+    def on_focus_out(self, event):
+        self.save_note()
 
     def clear_status(self):
         self.status_text.set("")
@@ -504,6 +510,9 @@ class MainWindow(Tk):
 
             with open(os.path.join(self.notes_dir, file_name), 'w') as note:
                 note.write(text)
+
+            self.note_text = text
+            self.set_status(f"Saved {file_name}")
 
     def show_previous(self):
         self.save_note()
