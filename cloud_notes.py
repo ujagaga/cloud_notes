@@ -345,9 +345,8 @@ class MainWindow(Tk):
         selection = event.widget.curselection()
         if selection:
             index = selection[0]
-            self.note_file_name = event.widget.get(index)
-
             self.save_note()
+            self.note_file_name = event.widget.get(index)
             self.read_note()
 
     def fix_offset(self, event):
