@@ -7,10 +7,12 @@ It is this folder that you can back up to save your notes.
 All the notes are just text files which the application reads and displays in a simple resizable window.
 
 You will need Python3 with TkInter installed.
-Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`. To change it just click on "browse" button.
+Just run the script. The default notes folder is `$HOME/.cloud_notes/notes`.
+To change it just click on "Select Notes Folder" button.
 """
 from tkinter import Tk, Button, Frame, LEFT, RIGHT, X, Y, TOP, BOTH, BOTTOM, Text, filedialog, YES, \
-    Scrollbar, Listbox, END, PhotoImage, simpledialog, messagebox, Label, StringVar
+    Scrollbar, Listbox, END, PhotoImage, simpledialog, messagebox, Label, StringVar, Toplevel
+
 import os
 import json
 from time import time, sleep
@@ -172,8 +174,41 @@ IMG_BTN_HIDE = (
 )
 
 
+class CreateToolTip(object):
+    """
+    create a tooltip for a given widget
+    """
+    def __init__(self, widget, text='widget info'):
+        self.tw = None
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+
+    def enter(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 30
+        # creates a toplevel window
+        self.tw = Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = Label(self.tw, text=self.text, justify='left',
+                       background='yellow', relief='solid', borderwidth=1,
+                       font=("times", "10", "normal"))
+        label.pack(ipadx=1)
+
+    def close(self, event=None):
+        if self.tw:
+            self.tw.destroy()
+
+
 class AutoScrollbar(Scrollbar):
-    # a scrollbar that hides itself if it's not needed.
+    """
+    a scrollbar that hides itself if it's not needed.
+    """
     visible = False
 
     def set(self, lo, hi):
@@ -201,8 +236,6 @@ class MainWindow(Tk):
         self.configure(background=COLOR_BACKGROUND)
         self.icon_image = PhotoImage(data=IMG_ICON)
         self.iconphoto(False, self.icon_image)
-
-        # self.focus_out_timestamp = 0
 
         self.x = 200
         self.y = 200
@@ -244,10 +277,14 @@ class MainWindow(Tk):
                                command=self.show_previous, width=26, height=26, pady=0, borderwidth=0)
         self.btn_prev.pack(side=LEFT, padx=1)
 
+        CreateToolTip(self.btn_prev, "Previous")
+
         self.next_btn_image = PhotoImage(data=IMG_BTN_NEXT)
         self.btn_next = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.next_btn_image,
                                command=self.show_next, width=26, height=26, pady=0, borderwidth=0)
         self.btn_next.pack(side=LEFT, padx=1)
+
+        CreateToolTip(self.btn_next, "Next")
 
         self.show_list_image = PhotoImage(data=IMG_BTN_SHOW)
         self.hide_list_image = PhotoImage(data=IMG_BTN_HIDE)
@@ -257,15 +294,21 @@ class MainWindow(Tk):
         self.btn_show_list.bind('<Button-1>', self.show_hide_note_list)
         self.btn_show_list.bind('<ButtonRelease-1>', self.fix_offset)
 
+        CreateToolTip(self.btn_show_list, "Show/Hide Note List")
+
         self.browse_image = PhotoImage(data=IMG_BTN_BROWSE)
         self.btn_browse = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.browse_image,
                                  command=self.select_notes_dir, width=26, height=26, borderwidth=0)
         self.btn_browse.pack(side=LEFT, padx=1)
 
+        CreateToolTip(self.btn_browse, "Select Notes Folder")
+
         self.new_note_image = PhotoImage(data=IMG_BTN_NEW)
         self.btn_new = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.new_note_image,
                               command=self.new_note, width=26, height=26, borderwidth=0)
         self.btn_new.pack(side=LEFT, padx=1)
+
+        CreateToolTip(self.btn_new, "New Note")
 
         self.del_image = PhotoImage(data=IMG_BTN_DELETE)
         self.btn_delete = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.del_image,
