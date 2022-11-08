@@ -34,7 +34,7 @@ except ModuleNotFoundError as e:
 COLOR_BACKGROUND = "#ffebb8"
 COLOR_TEXT = "#21130d"
 APP_TITLE = "Cloud Notes"
-MAX_FILE_SIZE = 1024        # If the file is bigger than 1Mb, it will not be opened to prevent app from freezing
+MAX_FILE_SIZE = 1024*1024        # If the file is bigger than 1Mb, it will not be opened to prevent app from freezing
 cfg_name = "settings.cfg"
 user_dir = os.path.expanduser("~")
 cfg_dir = os.path.join(user_dir, ".cloud_notes")
@@ -251,7 +251,7 @@ class MainWindow(Tk):
 
         self.show_list_image = PhotoImage(data=IMG_BTN_SHOW)
         self.hide_list_image = PhotoImage(data=IMG_BTN_HIDE)
-        self.btn_show_list = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.show_list_image,
+        self.btn_show_list = Button(self.frame_btn, bg=COLOR_BACKGROUND, fg=COLOR_TEXT, image=self.hide_list_image,
                                     width=26, height=26, borderwidth=0)
         self.btn_show_list.pack(side=LEFT, padx=1)
         self.btn_show_list.bind('<Button-1>', self.show_hide_note_list)
